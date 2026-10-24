@@ -460,4 +460,37 @@ public class AnalyzerTest {
                 result.getUnknownPatterns().isEmpty()
         );
     }
+
+    @Test
+    void multipleFlaggedEventsCountEachIpEntryOnce() {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+        rulebook.addRule("ERROR", 5);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        List<LogEntry> entries = List.of(
+                new LogEntry(1, "normal", timestamp,
+                        "INFO", "192.168.1.10", "/home", "view"),
+                new LogEntry(2, "warning", timestamp,
+                        "WARN", "192.168.1.10", "/login", "failed"),
+                new LogEntry(3, "error", timestamp,
+                        "ERROR", "192.168.1.10", "/admin", "denied"),
+                new LogEntry(4, "normal", timestamp,
+                        "INFO", "192.168.1.20", "/home", "view"),
+                new LogEntry(5, "warning", timestamp,
+                        "WARN", "192.168.1.30", "/login", "failed"),
+                new LogEntry(6, "normal", timestamp,
+                        "INFO", "192.168.1.30", "/home", "view")
+        );
+
+        AnalysisResult result = new Analyzer().analyze(entries, rulebook);
+
+        assertEquals(3, result.getFlaggedEntries().size());
+        assertEquals(2, result.getSuspiciousIps().size());
+        assertEquals(3, result.getSuspiciousIps().get("192.168.1.10"));
+        assertEquals(2, result.getSuspiciousIps().get("192.168.1.30"));
+        assertFalse(result.getSuspiciousIps().containsKey("192.168.1.20"));
+    }
 }

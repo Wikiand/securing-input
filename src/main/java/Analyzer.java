@@ -65,21 +65,17 @@ public class Analyzer {
             }
         }
 
-        // Count ALL cleanly parsed entries for IPs that have
-        // at least one flagged entry
+        // Count all entries per IP in a single pass.
+        Map<String, Integer> entriesByIp = new HashMap<>();
+
+        for (LogEntry entry : entries) {
+            entriesByIp.merge(entry.getSourceIp(), 1, Integer::sum);
+        }
+
+        // Include only IPs with at least one flagged entry.
         for (LogEntry flaggedEntry : flaggedEntries) {
-
             String ip = flaggedEntry.getSourceIp();
-
-            int totalEntriesForIp = 0;
-
-            for (LogEntry entry : entries) {
-                if (entry.getSourceIp().equals(ip)) {
-                    totalEntriesForIp++;
-                }
-            }
-
-            suspiciousIps.put(ip, totalEntriesForIp);
+            suspiciousIps.put(ip, entriesByIp.get(ip));
         }
 
         // Sort flagged entries by severity, highest first
