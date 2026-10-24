@@ -130,4 +130,90 @@ public class ReportWriterTest {
 
         Files.deleteIfExists(output);
     }
+
+    @Test
+    void reportContainsAccurateSecurityOverview() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(1, "normal", timestamp,
+                                "INFO", "192.168.1.10", "/home", "view"),
+                        new LogEntry(2, "warning", timestamp,
+                                "WARN", "192.168.1.10", "/login", "failed"),
+                        new LogEntry(3, "normal", timestamp,
+                                "INFO", "192.168.1.20", "/home", "view"),
+                        new LogEntry(4, "unknown", timestamp,
+                                "DEBUG", "192.168.1.30", "/home", "view")
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("security-overview", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output,
+                    result,
+                    rulebook,
+                    Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(report.contains(
+                    "Security Overview\n=================\n"
+            ));
+            assertTrue(report.contains("Total Parsed Events: 4"));
+            assertTrue(report.contains("Flagged Events: 1"));
+            assertTrue(report.contains("Suspicious IPs: 1"));
+            assertTrue(report.contains("Unknown Patterns: 1"));
+            assertTrue(report.contains("Malformed Lines: 0"));
+
+            assertTrue(
+                    report.indexOf("Security Overview")
+                            < report.indexOf("Activity Summary")
+            );
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
+    @Test
+    void securityOverviewCountsMalformedLines() throws Exception {
+        Rulebook rulebook = new Rulebook();
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("malformed-overview", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output,
+                    result,
+                    rulebook,
+                    Arrays.asList(
+                            new MalformedLine(5, "invalid log entry"),
+                            new MalformedLine(9, "missing timestamp")
+                    )
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(report.contains("Total Parsed Events: 0"));
+            assertTrue(report.contains("Flagged Events: 0"));
+            assertTrue(report.contains("Malformed Lines: 2"));
+            assertTrue(report.contains("Line 5: invalid log entry"));
+            assertTrue(report.contains("Line 9: missing timestamp"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
 }

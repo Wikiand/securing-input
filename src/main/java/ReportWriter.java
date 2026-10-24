@@ -51,6 +51,32 @@ public class ReportWriter {
                     .append("\n");
         }
 
+        // Security Overview
+        int totalParsedEvents = result.getActivitySummary()
+                .values()
+                .stream()
+                .mapToInt(Integer::intValue)
+                .sum()
+                + result.getUnknownPatterns().size();
+
+        report.append("\nSecurity Overview\n");
+        report.append("=================\n");
+        report.append("Total Parsed Events: ")
+                .append(totalParsedEvents)
+                .append("\n");
+        report.append("Flagged Events: ")
+                .append(result.getFlaggedEntries().size())
+                .append("\n");
+        report.append("Suspicious IPs: ")
+                .append(result.getSuspiciousIps().size())
+                .append("\n");
+        report.append("Unknown Patterns: ")
+                .append(result.getUnknownPatterns().size())
+                .append("\n");
+        report.append("Malformed Lines: ")
+                .append(malformedLines.size())
+                .append("\n");
+
         // Activity Summary
         report.append("\nActivity Summary\n");
         report.append("================\n");
