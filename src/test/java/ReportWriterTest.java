@@ -216,4 +216,45 @@ public class ReportWriterTest {
             Files.deleteIfExists(output);
         }
     }
+
+    @Test
+    void flaggedEntriesIncludeOriginalLineNumbers() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("WARN", 3);
+
+        LogEntry warning = new LogEntry(
+                42,
+                "2024-03-15 02:00:00 | WARN | 192.168.1.10 | /login | failed",
+                LocalDateTime.of(2024, 3, 15, 2, 0),
+                "WARN",
+                "192.168.1.10",
+                "/login",
+                "failed"
+        );
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(warning),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("flagged-lines", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output,
+                    result,
+                    rulebook,
+                    Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(report.contains(
+                    "Line 42: 2024-03-15 02:00:00 | WARN | "
+                    + "192.168.1.10 | /login | failed"
+            ));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
 }

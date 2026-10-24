@@ -106,7 +106,10 @@ public class ReportWriter {
             report.append("None found.\n");
         } else {
             for (LogEntry entry : result.getFlaggedEntries()) {
-                report.append(entry.getRawContent())
+                report.append("Line ")
+                        .append(entry.getLineNumber())
+                        .append(": ")
+                        .append(entry.getRawContent())
                         .append("\n");
             }
         }
