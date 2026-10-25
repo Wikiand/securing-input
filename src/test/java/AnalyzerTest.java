@@ -493,4 +493,61 @@ public class AnalyzerTest {
         assertEquals(2, result.getSuspiciousIps().get("192.168.1.30"));
         assertFalse(result.getSuspiciousIps().containsKey("192.168.1.20"));
     }
+
+    @Test
+    void suspiciousIpsAreOrderedByCountThenIpAddress() {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        List<LogEntry> entries = List.of(
+                new LogEntry(1, "warning", timestamp,
+                        "WARN", "192.168.1.30", "/login", "failed"),
+                new LogEntry(2, "warning", timestamp,
+                        "WARN", "192.168.1.20", "/login", "failed"),
+                new LogEntry(3, "warning", timestamp,
+                        "WARN", "192.168.1.10", "/login", "failed"),
+                new LogEntry(4, "normal", timestamp,
+                        "INFO", "192.168.1.20", "/home", "view"),
+                new LogEntry(5, "normal", timestamp,
+                        "INFO", "192.168.1.10", "/home", "view"),
+                new LogEntry(6, "normal", timestamp,
+                        "INFO", "192.168.1.20", "/home", "view")
+        );
+
+        AnalysisResult result = new Analyzer().analyze(entries, rulebook);
+
+        assertEquals(
+                List.of("192.168.1.20", "192.168.1.10", "192.168.1.30"),
+                new java.util.ArrayList<>(result.getSuspiciousIps().keySet())
+        );
+    }
+
+
+    @Test
+    void suspiciousIpsWithEqualCountsAreOrderedAlphabetically() {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("WARN", 3);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        List<LogEntry> entries = List.of(
+                new LogEntry(1, "warning", timestamp,
+                        "WARN", "192.168.1.30", "/login", "failed"),
+                new LogEntry(2, "warning", timestamp,
+                        "WARN", "192.168.1.20", "/login", "failed"),
+                new LogEntry(3, "warning", timestamp,
+                        "WARN", "192.168.1.10", "/login", "failed")
+        );
+
+        AnalysisResult result = new Analyzer().analyze(entries, rulebook);
+
+        assertEquals(
+                List.of("192.168.1.10", "192.168.1.20", "192.168.1.30"),
+                new java.util.ArrayList<>(result.getSuspiciousIps().keySet())
+        );
+    }
+
 }

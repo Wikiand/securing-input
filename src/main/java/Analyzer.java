@@ -92,6 +92,7 @@ public class Analyzer {
                 .sorted(
                         Map.Entry.<String, Integer>comparingByValue()
                                 .reversed()
+                                .thenComparing(Map.Entry.comparingByKey())
                 )
                 .collect(
                         java.util.LinkedHashMap::new,
