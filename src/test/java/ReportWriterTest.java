@@ -66,7 +66,7 @@ public class ReportWriterTest {
                 "2024-03-15 02:15:33 | WARN | 192.168.1.10 | /login | failed"
         ));
 
-        assertTrue(report.contains("192.168.1.10: 2"));
+        assertTrue(report.contains("192.168.1.10: 2 total log entries"));
 
         Files.deleteIfExists(output);
     }

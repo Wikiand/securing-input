@@ -127,6 +127,7 @@ public class ReportWriter {
                 report.append(entry.getKey())
                         .append(": ")
                         .append(entry.getValue())
+                        .append(" total log entries")
                         .append("\n");
             }
         }
