@@ -257,4 +257,94 @@ public class ReportWriterTest {
             Files.deleteIfExists(output);
         }
     }
+
+    @Test
+    void securityOverviewShowsFlaggedEventsBySeverity() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+        rulebook.addRule("ERROR", 5);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(1, "normal", timestamp,
+                                "INFO", "192.168.1.10", "/home", "view"),
+                        new LogEntry(2, "warning one", timestamp,
+                                "WARN", "192.168.1.20", "/login", "failed"),
+                        new LogEntry(3, "error", timestamp,
+                                "ERROR", "192.168.1.30", "/admin", "denied"),
+                        new LogEntry(4, "warning two", timestamp,
+                                "WARN", "192.168.1.20", "/login", "failed")
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("severity-overview", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output,
+                    result,
+                    rulebook,
+                    Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(report.contains("Flagged Events: 3"));
+            assertTrue(report.contains("Flagged Events by Severity"));
+            assertTrue(report.contains("Severity 5: 1 event"));
+            assertTrue(report.contains("Severity 3: 2 events"));
+            assertFalse(report.contains("Severity 1:"));
+
+            assertTrue(
+                    report.indexOf("Flagged Events by Severity")
+                            < report.indexOf("Activity Summary")
+            );
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
+
+    @Test
+    void severityBreakdownShowsNoneWhenNoEventsAreFlagged() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(1, "normal", timestamp,
+                                "INFO", "192.168.1.10", "/home", "view")
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("empty-severity", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output,
+                    result,
+                    rulebook,
+                    Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(report.contains(
+                    "Flagged Events by Severity\n"
+                    + "--------------------------\n"
+                    + "None found."
+            ));
+            assertTrue(report.contains("Flagged Events: 0"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
 }

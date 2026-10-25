@@ -77,6 +77,33 @@ public class ReportWriter {
                 .append(malformedLines.size())
                 .append("\n");
 
+        // Flagged events grouped by rulebook severity
+        java.util.Map<Integer, Integer> severityCounts =
+                new java.util.TreeMap<>(java.util.Comparator.reverseOrder());
+
+        for (LogEntry entry : result.getFlaggedEntries()) {
+            int severity = rulebook.getSeverityScore(entry.getLevel());
+            severityCounts.merge(severity, 1, Integer::sum);
+        }
+
+        report.append("\nFlagged Events by Severity\n");
+        report.append("--------------------------\n");
+
+        if (severityCounts.isEmpty()) {
+            report.append("None found.\n");
+        } else {
+            for (java.util.Map.Entry<Integer, Integer> entry :
+                    severityCounts.entrySet()) {
+                int count = entry.getValue();
+
+                report.append("Severity ")
+                        .append(entry.getKey())
+                        .append(": ")
+                        .append(count)
+                        .append(count == 1 ? " event\n" : " events\n");
+            }
+        }
+
         // Activity Summary
         report.append("\nActivity Summary\n");
         report.append("================\n");
