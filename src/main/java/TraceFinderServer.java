@@ -59,6 +59,11 @@ public final class TraceFinderServer {
                 new TraceFinderAnalyzeHandler()
         );
 
+        server.createContext(
+                "/",
+                new TraceFinderStaticHandler()
+        );
+
         return server;
     }
 }

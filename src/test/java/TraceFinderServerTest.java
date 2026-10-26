@@ -33,6 +33,80 @@ class TraceFinderServerTest {
         }
     }
 
+
+    @Test
+    void dashboardReturnsHtml() throws Exception {
+        HttpResponse<String> response = get("/");
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("TraceFinder"));
+        assertTrue(response.body().contains("analysis-form"));
+        assertEquals(
+                "text/html; charset=UTF-8",
+                response.headers().firstValue("Content-Type").orElse("")
+        );
+    }
+
+    @Test
+    void dashboardServesStylesheet() throws Exception {
+        HttpResponse<String> response = get("/styles.css");
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("--accent"));
+        assertEquals(
+                "text/css; charset=UTF-8",
+                response.headers().firstValue("Content-Type").orElse("")
+        );
+    }
+
+    @Test
+    void dashboardServesJavaScript() throws Exception {
+        HttpResponse<String> response = get("/app.js");
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("/api/analyze"));
+        assertEquals(
+                "text/javascript; charset=UTF-8",
+                response.headers().firstValue("Content-Type").orElse("")
+        );
+    }
+
+    @Test
+    void dashboardRejectsUnknownPaths() throws Exception {
+        HttpResponse<String> response = get("/unknown-file.txt");
+
+        assertEquals(404, response.statusCode());
+    }
+
+    @Test
+    void dashboardRejectsPost() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<String> response = client.send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertEquals(405, response.statusCode());
+        assertEquals(
+                "GET",
+                response.headers().firstValue("Allow").orElse("")
+        );
+    }
+
+    private HttpResponse<String> get(String path) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + path))
+                .GET()
+                .build();
+
+        return client.send(
+                request, HttpResponse.BodyHandlers.ofString()
+        );
+    }
+
     @Test
     void healthEndpointReturnsOk() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()

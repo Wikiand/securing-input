@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TraceFinder security log analysis dashboard">
+  <title>TraceFinder | Security Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon">◈</span>
+        <span>TraceFinder</span>
+      </div>
+
+      <div class="sidebar-label">SECURITY WORKSPACE</div>
+      <nav aria-label="Main navigation">
+        <a class="nav-link active" href="#overview">Overview</a>
+        <a class="nav-link" href="#upload">Analyze Logs</a>
+        <a class="nav-link" href="#threats">Threat Intelligence</a>
+        <a class="nav-link" href="#events">Security Events</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="status-dot"></span>
+        Local Analysis Workspace
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">SECURITY OPERATIONS</p>
+          <h1>Security Overview</h1>
+          <p class="subtitle">
+            Analyze logs, investigate suspicious activity,
+            and assess potential threats.
+          </p>
+        </div>
+        <span class="environment">LOCAL ENVIRONMENT</span>
+      </header>
+
+      <section id="upload" class="panel upload-panel">
+        <div class="section-heading">
+          <div>
+            <h2>New Analysis</h2>
+            <p>Upload a log file and a CSV detection rulebook.</p>
+          </div>
+        </div>
+
+        <form id="analysis-form">
+          <div class="upload-grid">
+            <label class="file-upload">
+              <span class="upload-icon">↑</span>
+              <strong>Log File</strong>
+              <span>Choose a security log to analyze</span>
+              <input id="log-file" type="file" required>
+              <small id="log-filename">No file selected</small>
+            </label>
+
+            <label class="file-upload">
+              <span class="upload-icon">≡</span>
+              <strong>Detection Rulebook</strong>
+              <span>Choose a CSV rulebook</span>
+              <input id="rulebook-file" type="file" accept=".csv,text/csv" required>
+              <small id="rulebook-filename">No file selected</small>
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button id="analyze-button" type="submit">
+              Run Security Analysis
+            </button>
+            <p id="analysis-status" role="status" aria-live="polite">
+              Ready to analyze.
+            </p>
+          </div>
+        </form>
+      </section>
+
+      <section id="overview" aria-labelledby="overview-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ANALYSIS RESULTS</p>
+            <h2 id="overview-title">Threat Overview</h2>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>Flagged Events</span>
+            <strong id="flagged-count">—</strong>
+          </article>
+          <article class="stat-card">
+            <span>Suspicious IPs</span>
+            <strong id="suspicious-count">—</strong>
+          </article>
+          <article class="stat-card">
+            <span>High-Risk IPs</span>
+            <strong id="high-risk-count">—</strong>
+          </article>
+          <article class="stat-card">
+            <span>Malformed Lines</span>
+            <strong id="malformed-count">—</strong>
+          </article>
+        </div>
+      </section>
+
+      <section id="threats" class="panel">
+        <div class="section-heading">
+          <div>
+            <h2>Suspicious IPs &amp; Threat Scores</h2>
+            <p>Risk classifications from the TraceFinder analysis engine.</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Source IP</th>
+                <th>Threat Score</th>
+                <th>Risk Level</th>
+              </tr>
+            </thead>
+            <tbody id="threat-table">
+              <tr><td colspan="3" class="empty-state">No analysis yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="events" class="panel">
+        <div class="section-heading">
+          <div>
+            <h2>Flagged Security Events</h2>
+            <p>Events identified by the configured detection rules.</p>
+          </div>
+        </div>
+        <div id="events-container" class="empty-state">
+          Upload files and run an analysis to see flagged events.
+        </div>
+      </section>
+
+      <footer class="footer">
+        TraceFinder · Security Log Analysis
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
