@@ -200,7 +200,9 @@ public class ReportWriter {
                             report.append(entry.getKey())
                                     .append(": ")
                                     .append(entry.getValue())
-                                    .append("\n")
+                                    .append(" (")
+                                    .append(classifyThreatScore(entry.getValue()))
+                                    .append(")\n")
                     );
         }
 
@@ -237,5 +239,15 @@ public class ReportWriter {
         }
 
         Files.writeString(outputPath, report.toString());
+    }
+
+    private static String classifyThreatScore(int score) {
+        if (score >= 10) {
+            return "HIGH";
+        }
+        if (score >= 5) {
+            return "MEDIUM";
+        }
+        return "LOW";
     }
 }

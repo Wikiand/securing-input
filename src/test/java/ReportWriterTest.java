@@ -541,4 +541,56 @@ public class ReportWriterTest {
     }
 
 
+    @Test
+    void threatScoresDisplayRiskClassifications() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("LOW_EVENT", 3);
+        rulebook.addRule("FOUR_EVENT", 4);
+        rulebook.addRule("FIVE_EVENT", 5);
+        rulebook.addRule("NINE_EVENT", 9);
+        rulebook.addRule("TEN_EVENT", 10);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(1, "low", timestamp,
+                                "LOW_EVENT", "192.168.1.10", "/a", "event"),
+                        new LogEntry(2, "four", timestamp,
+                                "FOUR_EVENT", "192.168.1.20", "/b", "event"),
+                        new LogEntry(3, "five", timestamp,
+                                "FIVE_EVENT", "192.168.1.30", "/c", "event"),
+                        new LogEntry(4, "nine", timestamp,
+                                "NINE_EVENT", "192.168.1.40", "/d", "event"),
+                        new LogEntry(5, "ten", timestamp,
+                                "TEN_EVENT", "192.168.1.50", "/e", "event")
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("risk-classification", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output, result, rulebook, Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+            int start = report.indexOf("Suspicious IP Threat Scores");
+            int end = report.indexOf("Unknown Patterns", start);
+
+            assertTrue(start >= 0 && end > start);
+
+            String section = report.substring(start, end);
+
+            assertTrue(section.contains("192.168.1.10: 3 (LOW)"));
+            assertTrue(section.contains("192.168.1.20: 4 (LOW)"));
+            assertTrue(section.contains("192.168.1.30: 5 (MEDIUM)"));
+            assertTrue(section.contains("192.168.1.40: 9 (MEDIUM)"));
+            assertTrue(section.contains("192.168.1.50: 10 (HIGH)"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
 }
