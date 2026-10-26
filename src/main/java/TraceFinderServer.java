@@ -10,8 +10,17 @@ public final class TraceFinderServer {
     }
 
     public static void main(String[] args) throws IOException {
+        HttpServer server = createServer(8080);
+        server.start();
+
+        System.out.println(
+                "TraceFinder API running at http://127.0.0.1:8080"
+        );
+    }
+
+    static HttpServer createServer(int port) throws IOException {
         HttpServer server = HttpServer.create(
-                new InetSocketAddress("127.0.0.1", 8080),
+                new InetSocketAddress("127.0.0.1", port),
                 0
         );
 
@@ -45,10 +54,11 @@ public final class TraceFinderServer {
             }
         });
 
-        server.start();
-
-        System.out.println(
-                "TraceFinder API running at http://127.0.0.1:8080"
+        server.createContext(
+                "/api/analyze",
+                new TraceFinderAnalyzeHandler()
         );
+
+        return server;
     }
 }
