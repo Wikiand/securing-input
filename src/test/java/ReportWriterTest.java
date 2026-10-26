@@ -347,4 +347,116 @@ public class ReportWriterTest {
         }
     }
 
+
+    @Test
+    void securityOverviewShowsTopFiveSuspiciousIps() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+        java.util.List<LogEntry> entries = new java.util.ArrayList<>();
+
+        for (int i = 1; i <= 7; i++) {
+            String ip = "192.168.1." + i;
+            entries.add(new LogEntry(
+                    entries.size() + 1, "warning", timestamp,
+                    "WARN", ip, "/login", "failed"
+            ));
+
+            int count = i == 6 ? 5 : i == 7 ? 5 : i;
+
+            for (int j = 1; j < count; j++) {
+                entries.add(new LogEntry(
+                        entries.size() + 1, "normal", timestamp,
+                        "INFO", ip, "/home", "view"
+                ));
+            }
+        }
+
+        AnalysisResult result = new Analyzer().analyze(entries, rulebook);
+        Path output = Files.createTempFile("top-ips", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output, result, rulebook, Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+            int start = report.indexOf("Top 5 Suspicious IPs");
+            int end = report.indexOf("Activity Summary");
+            assertTrue(start >= 0, "Top 5 subsection is missing");
+            assertTrue(end > start, "Top 5 subsection is misplaced");
+
+            String overview = report.substring(start, end);
+
+            String[] expected = {
+                    "192.168.1.5: 5 total log entries",
+                    "192.168.1.6: 5 total log entries",
+                    "192.168.1.7: 5 total log entries",
+                    "192.168.1.4: 4 total log entries",
+                    "192.168.1.3: 3 total log entries"
+            };
+
+            int previous = -1;
+            for (String line : expected) {
+                int position = overview.indexOf(line);
+                assertTrue(position > previous,
+                        "Missing or incorrectly ordered: " + line);
+                previous = position;
+            }
+
+            assertFalse(overview.contains("192.168.1.2:"));
+            assertFalse(overview.contains("192.168.1.1:"));
+
+            assertTrue(report.contains(
+                    "Suspicious Activity by IP"
+            ));
+            assertTrue(report.contains(
+                    "192.168.1.1: 1 total log entries"
+            ));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
+
+    @Test
+    void topSuspiciousIpsShowsNoneWhenEmpty() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(
+                                1, "normal", timestamp,
+                                "INFO", "192.168.1.10", "/home", "view"
+                        )
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("empty-top-ips", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output, result, rulebook, Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(report.contains(
+                    "Top 5 Suspicious IPs\n"
+                    + "--------------------\n"
+                    + "None found.\n"
+            ));
+
+            assertTrue(report.contains("Suspicious IPs: 0"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
 }

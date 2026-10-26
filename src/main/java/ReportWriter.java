@@ -104,6 +104,29 @@ public class ReportWriter {
             }
         }
 
+        // Top five suspicious IPs by total log entries
+        report.append("\nTop 5 Suspicious IPs\n");
+        report.append("--------------------\n");
+
+        if (result.getSuspiciousIps().isEmpty()) {
+            report.append("None found.\n");
+        } else {
+            result.getSuspiciousIps().entrySet()
+                    .stream()
+                    .sorted(
+                            Map.Entry.<String, Integer>comparingByValue()
+                                    .reversed()
+                                    .thenComparing(Map.Entry.comparingByKey())
+                    )
+                    .limit(5)
+                    .forEach(entry ->
+                            report.append(entry.getKey())
+                                    .append(": ")
+                                    .append(entry.getValue())
+                                    .append(" total log entries\n")
+                    );
+        }
+
         // Activity Summary
         report.append("\nActivity Summary\n");
         report.append("================\n");
