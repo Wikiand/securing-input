@@ -31,7 +31,8 @@ public class Main {
         if (args.length != 3 && args.length != 5) {
             throw new TraceFinderArgumentException(
                     "Usage: java Main logs.txt rules.csv report.txt "
-                            + "[start timestamp] [end timestamp]"
+                            + "[start timestamp end timestamp | "
+                            + "--risk-medium=N --risk-high=N]"
             );
         }
 
@@ -41,25 +42,58 @@ public class Main {
 
         LocalDateTime start = null;
         LocalDateTime end = null;
+        RiskThresholds riskThresholds = new RiskThresholds(5, 10);
+        boolean hasTimeWindow = false;
 
         if (args.length == 5) {
-            DateTimeFormatter formatter =
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            boolean hasRiskOptions =
+                    args[3].startsWith("--risk-")
+                            || args[4].startsWith("--risk-");
 
-            try {
-                start = LocalDateTime.parse(args[3], formatter);
-                end = LocalDateTime.parse(args[4], formatter);
-            } catch (DateTimeParseException e) {
-                throw new TraceFinderArgumentException(
-                        "Timestamps must use format yyyy-MM-dd HH:mm:ss",
-                        e
-                );
-            }
+            if (hasRiskOptions) {
+                if (!args[3].startsWith("--risk-medium=")
+                        || !args[4].startsWith("--risk-high=")) {
+                    throw new TraceFinderArgumentException(
+                            "Expected --risk-medium=N --risk-high=N"
+                    );
+                }
 
-            if (start.isAfter(end)) {
-                throw new TraceFinderArgumentException(
-                        "Start timestamp must not be after end timestamp"
-                );
+                try {
+                    int medium = Integer.parseInt(
+                            args[3].substring("--risk-medium=".length())
+                    );
+                    int high = Integer.parseInt(
+                            args[4].substring("--risk-high=".length())
+                    );
+                    riskThresholds = new RiskThresholds(medium, high);
+                } catch (IllegalArgumentException e) {
+                    throw new TraceFinderArgumentException(
+                            "Invalid risk thresholds: "
+                                    + e.getMessage(),
+                            e
+                    );
+                }
+            } else {
+                DateTimeFormatter formatter =
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+                try {
+                    start = LocalDateTime.parse(args[3], formatter);
+                    end = LocalDateTime.parse(args[4], formatter);
+                } catch (DateTimeParseException e) {
+                    throw new TraceFinderArgumentException(
+                            "Timestamps must use format yyyy-MM-dd HH:mm:ss",
+                            e
+                    );
+                }
+
+                if (start.isAfter(end)) {
+                    throw new TraceFinderArgumentException(
+                            "Start timestamp must not be after end timestamp"
+                    );
+                }
+
+                hasTimeWindow = true;
             }
         }
 
@@ -72,7 +106,7 @@ public class Main {
         Analyzer analyzer = new Analyzer();
         AnalysisResult analysisResult;
 
-        if (args.length == 5) {
+        if (hasTimeWindow) {
             analysisResult = analyzer.analyze(
                     logResult.getEntries(),
                     rulebook,
@@ -86,7 +120,7 @@ public class Main {
             );
         }
 
-        ReportWriter reportWriter = new ReportWriter();
+        ReportWriter reportWriter = new ReportWriter(riskThresholds);
 
         try {
             reportWriter.write(

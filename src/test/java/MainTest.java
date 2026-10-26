@@ -305,5 +305,72 @@ public class MainTest {
             Files.deleteIfExists(report);
         }
     }
+
+    @Test
+    void mainAcceptsCustomRiskThresholdArguments() throws Exception {
+        Path logs = Files.createTempFile("risk-cli-logs", ".txt");
+        Path rules = Files.createTempFile("risk-cli-rules", ".csv");
+        Path report = Files.createTempFile("risk-cli-report", ".txt");
+
+        try {
+            Files.writeString(
+                    logs,
+                    "2024-03-15 02:00:00 | ALERT | 192.168.1.50 | /admin | event\n"
+            );
+
+            Files.writeString(
+                    rules,
+                    "level,severity_score\n"
+                            + "ALERT,10\n"
+            );
+
+            int exitCode = Main.run(new String[]{
+                    logs.toString(),
+                    rules.toString(),
+                    report.toString(),
+                    "--risk-medium=8",
+                    "--risk-high=15"
+            });
+
+            assertEquals(0, exitCode);
+            assertTrue(
+                    Files.readString(report)
+                            .contains("192.168.1.50: 10 (MEDIUM)")
+            );
+        } finally {
+            Files.deleteIfExists(logs);
+            Files.deleteIfExists(rules);
+            Files.deleteIfExists(report);
+        }
+    }
+
+    @Test
+    void mainRejectsInvalidRiskThresholdArguments() {
+        String[][] invalidOptions = {
+                {"--risk-medium=abc", "--risk-high=15"},
+                {"--risk-medium=15", "--risk-high=10"},
+                {"--risk-medium=0", "--risk-high=10"},
+                {"--risk-medium=-1", "--risk-high=10"},
+                {"--risk-medium=8", "--risk-high=8"},
+                {"--risk-medium=8", "--risk-high=abc"},
+                {"--risk-medium=8", "--risk-medium=15"},
+                {"--risk-high=15", "--risk-medium=8"}
+        };
+
+        for (String[] options : invalidOptions) {
+            assertThrows(
+                    TraceFinderArgumentException.class,
+                    () -> Main.run(new String[]{
+                            "logs.txt",
+                            "rules.csv",
+                            "report.txt",
+                            options[0],
+                            options[1]
+                    }),
+                    "Expected rejection of: "
+                            + String.join(" ", options)
+            );
+        }
+    }
 }
 

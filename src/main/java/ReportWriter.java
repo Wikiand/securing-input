@@ -10,6 +10,18 @@ public class ReportWriter {
     private static final DateTimeFormatter TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    private final RiskThresholds riskThresholds;
+
+    public ReportWriter() {
+        this(new RiskThresholds(5, 10));
+    }
+
+    public ReportWriter(RiskThresholds riskThresholds) {
+        this.riskThresholds = java.util.Objects.requireNonNull(
+                riskThresholds, "riskThresholds"
+        );
+    }
+
     public void write(
             Path outputPath,
             AnalysisResult result,
@@ -201,7 +213,7 @@ public class ReportWriter {
                                     .append(": ")
                                     .append(entry.getValue())
                                     .append(" (")
-                                    .append(classifyThreatScore(entry.getValue()))
+                                    .append(riskThresholds.classify(entry.getValue()))
                                     .append(")\n")
                     );
         }
@@ -241,13 +253,4 @@ public class ReportWriter {
         Files.writeString(outputPath, report.toString());
     }
 
-    private static String classifyThreatScore(int score) {
-        if (score >= 10) {
-            return "HIGH";
-        }
-        if (score >= 5) {
-            return "MEDIUM";
-        }
-        return "LOW";
-    }
 }

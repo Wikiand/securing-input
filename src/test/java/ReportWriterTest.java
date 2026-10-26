@@ -593,4 +593,40 @@ public class ReportWriterTest {
         }
     }
 
+
+    @Test
+    void reportWriterAcceptsCustomRiskThresholds() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("ALERT", 10);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(
+                                1, "alert", timestamp,
+                                "ALERT", "192.168.1.50", "/admin", "event"
+                        )
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("custom-risk", ".txt");
+
+        try {
+            ReportWriter writer = new ReportWriter(
+                    new RiskThresholds(8, 15)
+            );
+
+            writer.write(output, result, rulebook, Arrays.asList());
+
+            String report = Files.readString(output);
+
+            assertTrue(
+                    report.contains("192.168.1.50: 10 (MEDIUM)")
+            );
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
 }
