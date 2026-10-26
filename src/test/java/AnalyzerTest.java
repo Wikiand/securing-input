@@ -525,7 +525,6 @@ public class AnalyzerTest {
         );
     }
 
-
     @Test
     void suspiciousIpsWithEqualCountsAreOrderedAlphabetically() {
         Rulebook rulebook = new Rulebook();
@@ -549,5 +548,38 @@ public class AnalyzerTest {
                 new java.util.ArrayList<>(result.getSuspiciousIps().keySet())
         );
     }
+
+    @Test
+    void threatScoresSumOnlyFlaggedEventSeverities() {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+        rulebook.addRule("ERROR", 5);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        List<LogEntry> entries = List.of(
+                new LogEntry(1, "warning", timestamp,
+                        "WARN", "192.168.1.10", "/login", "failed"),
+                new LogEntry(2, "error", timestamp,
+                        "ERROR", "192.168.1.10", "/admin", "denied"),
+                new LogEntry(3, "normal", timestamp,
+                        "INFO", "192.168.1.10", "/home", "view"),
+                new LogEntry(4, "warning", timestamp,
+                        "WARN", "192.168.1.20", "/login", "failed"),
+                new LogEntry(5, "normal", timestamp,
+                        "INFO", "192.168.1.30", "/home", "view")
+        );
+
+        AnalysisResult result = new Analyzer().analyze(entries, rulebook);
+
+        assertEquals(8, result.getThreatScores().get("192.168.1.10"));
+        assertEquals(3, result.getThreatScores().get("192.168.1.20"));
+        assertFalse(result.getThreatScores().containsKey("192.168.1.30"));
+
+        assertEquals(3, result.getSuspiciousIps().get("192.168.1.10"));
+        assertEquals(1, result.getSuspiciousIps().get("192.168.1.20"));
+    }
+
 
 }

@@ -78,6 +78,14 @@ public class Analyzer {
             suspiciousIps.put(ip, entriesByIp.get(ip));
         }
 
+        // Sum flagged-event severity scores for each source IP.
+        Map<String, Integer> threatScores = new HashMap<>();
+
+        for (LogEntry entry : flaggedEntries) {
+            int severity = rulebook.getSeverityScore(entry.getLevel());
+            threatScores.merge(entry.getSourceIp(), severity, Integer::sum);
+        }
+
         // Sort flagged entries by severity, highest first
         flaggedEntries.sort(
                 Comparator.comparingInt(
@@ -105,7 +113,8 @@ public class Analyzer {
                 activitySummary,
                 flaggedEntries,
                 suspiciousIps,
-                unknownPatterns
+                unknownPatterns,
+                threatScores
         );
     }
 }

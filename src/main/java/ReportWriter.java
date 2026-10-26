@@ -182,6 +182,28 @@ public class ReportWriter {
             }
         }
 
+        // Suspicious IPs ranked by severity-weighted threat score
+        report.append("\nSuspicious IP Threat Scores\n");
+        report.append("===========================\n");
+
+        if (result.getThreatScores().isEmpty()) {
+            report.append("None found.\n");
+        } else {
+            result.getThreatScores().entrySet()
+                    .stream()
+                    .sorted(
+                            Map.Entry.<String, Integer>comparingByValue()
+                                    .reversed()
+                                    .thenComparing(Map.Entry.comparingByKey())
+                    )
+                    .forEach(entry ->
+                            report.append(entry.getKey())
+                                    .append(": ")
+                                    .append(entry.getValue())
+                                    .append("\n")
+                    );
+        }
+
         // Unknown Patterns
         report.append("\nUnknown Patterns\n");
         report.append("================\n");

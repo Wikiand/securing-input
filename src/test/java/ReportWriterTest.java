@@ -308,7 +308,6 @@ public class ReportWriterTest {
         }
     }
 
-
     @Test
     void severityBreakdownShowsNoneWhenNoEventsAreFlagged() throws Exception {
         Rulebook rulebook = new Rulebook();
@@ -346,7 +345,6 @@ public class ReportWriterTest {
             Files.deleteIfExists(output);
         }
     }
-
 
     @Test
     void securityOverviewShowsTopFiveSuspiciousIps() throws Exception {
@@ -420,7 +418,6 @@ public class ReportWriterTest {
         }
     }
 
-
     @Test
     void topSuspiciousIpsShowsNoneWhenEmpty() throws Exception {
         Rulebook rulebook = new Rulebook();
@@ -458,5 +455,90 @@ public class ReportWriterTest {
             Files.deleteIfExists(output);
         }
     }
+
+    @Test
+    void reportRanksSuspiciousIpsByThreatScore() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+        rulebook.addRule("WARN", 3);
+        rulebook.addRule("ERROR", 5);
+
+        LocalDateTime timestamp = LocalDateTime.of(2024, 3, 15, 2, 0);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(
+                        new LogEntry(1, "warning", timestamp,
+                                "WARN", "192.168.1.30", "/login", "failed"),
+                        new LogEntry(2, "error", timestamp,
+                                "ERROR", "192.168.1.20", "/admin", "denied"),
+                        new LogEntry(3, "error", timestamp,
+                                "ERROR", "192.168.1.10", "/admin", "denied"),
+                        new LogEntry(4, "warning", timestamp,
+                                "WARN", "192.168.1.30", "/login", "failed"),
+                        new LogEntry(5, "normal", timestamp,
+                                "INFO", "192.168.1.20", "/home", "view")
+                ),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("threat-scores", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output, result, rulebook, Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+            int start = report.indexOf("Suspicious IP Threat Scores");
+            int end = report.indexOf("Unknown Patterns", start);
+
+            assertTrue(start >= 0, "Threat-score section is missing");
+            assertTrue(end > start, "Threat-score section is misplaced");
+
+            String section = report.substring(start, end);
+
+            int first = section.indexOf("192.168.1.30: 6");
+            int second = section.indexOf("192.168.1.10: 5");
+            int third = section.indexOf("192.168.1.20: 5");
+
+            assertTrue(first >= 0 && second > first && third > second,
+                    "Threat scores must be sorted by score, then IP");
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
+    @Test
+    void threatScoresShowNoneWhenEmpty() throws Exception {
+        Rulebook rulebook = new Rulebook();
+        rulebook.addRule("INFO", 1);
+
+        AnalysisResult result = new Analyzer().analyze(
+                Arrays.asList(),
+                rulebook
+        );
+
+        Path output = Files.createTempFile("empty-threat-scores", ".txt");
+
+        try {
+            new ReportWriter().write(
+                    output, result, rulebook, Arrays.asList()
+            );
+
+            String report = Files.readString(output);
+
+            assertTrue(
+                    report.contains(
+                            "Suspicious IP Threat Scores\n"
+                            + "===========================\n"
+                            + "None found."
+                    ),
+                    "Empty threat-score section should display None found."
+            );
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
 
 }
