@@ -151,13 +151,88 @@ function showIpInvestigation(ip, score, level) {
 
     for (const event of events) {
       const item = document.createElement("li");
-      item.textContent = [
+      const details = document.createElement("details");
+      details.className = "evidence-details";
+
+      const summary = document.createElement("summary");
+
+      const severity = document.createElement("span");
+      severity.className = "evidence-severity";
+      severity.dataset.level = String(event.level ?? "").toUpperCase();
+      severity.textContent = displayValue(event.level);
+
+      const description = [
         formatInvestigationTime(event.timestamp),
-        event.level,
         event.target,
         event.action,
         `Line ${event.lineNumber}`
       ].map(displayValue).join(" | ");
+
+      summary.append(
+        severity,
+        document.createTextNode(` | ${description}`)
+      );
+
+      const evidence = document.createElement("div");
+      evidence.className = "evidence-content";
+
+      const fields = [
+        ["Timestamp", formatInvestigationTime(event.timestamp)],
+        ["Severity", event.level],
+        ["Source IP", event.sourceIp],
+        ["Target", event.target],
+        ["Action", event.action],
+        ["Line Number", event.lineNumber]
+      ];
+
+      for (const [label, value] of fields) {
+        const field = document.createElement("p");
+        const name = document.createElement("strong");
+        name.textContent = `${label}: `;
+
+        field.append(name, document.createTextNode(displayValue(value)));
+        evidence.appendChild(field);
+      }
+
+      const rawHeading = document.createElement("strong");
+      rawHeading.textContent = "Original Log Entry";
+
+      const rawLog = document.createElement("pre");
+      rawLog.className = "evidence-raw";
+      rawLog.textContent = displayValue(event.rawContent);
+
+      const copyButton = document.createElement("button");
+      copyButton.type = "button";
+      copyButton.className = "copy-evidence-button";
+      copyButton.textContent = "Copy Evidence";
+
+      const copyStatus = document.createElement("span");
+      copyStatus.className = "copy-evidence-status";
+      copyStatus.setAttribute("role", "status");
+      copyStatus.setAttribute("aria-live", "polite");
+
+      copyButton.addEventListener("click", async () => {
+        const report = [
+          "TraceFinder Security Event Evidence",
+          ...fields.map(
+            ([label, value]) => `${label}: ${displayValue(value)}`
+          ),
+          "",
+          "Original Log Entry:",
+          displayValue(event.rawContent)
+        ].join("\n");
+
+        try {
+          await navigator.clipboard.writeText(report);
+          copyStatus.textContent = "Evidence copied!";
+        } catch (error) {
+          copyStatus.textContent = "Copy failed. Check clipboard permissions.";
+        }
+      });
+
+      evidence.append(rawHeading, rawLog, copyButton, copyStatus);
+      details.append(summary, evidence);
+      item.appendChild(details);
 
       list.appendChild(item);
     }
