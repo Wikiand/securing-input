@@ -318,3 +318,141 @@ th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
     min-width: 0;
   }
 }
+
+/* Threat intelligence visualizations */
+.visualizations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.chart-panel {
+  min-width: 0;
+}
+
+.chart-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 12px;
+}
+
+.chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chart-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.chart-row-heading span {
+  color: #cbd5e1;
+  overflow-wrap: anywhere;
+}
+
+.chart-row-heading strong {
+  color: #f8fafc;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #1e293b;
+}
+
+.chart-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: #38bdf8;
+  transition: width 350ms ease;
+}
+
+.chart-bar[data-category="high"] {
+  background: #ef4444;
+}
+
+.chart-bar[data-category="medium"] {
+  background: #f59e0b;
+}
+
+.chart-bar[data-category="low"] {
+  background: #22c55e;
+}
+
+@media (max-width: 800px) {
+  .visualizations {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar {
+    transition: none;
+  }
+}
+
+/* Security analysis report export */
+.report-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.report-actions h2 {
+  margin: 0 0 8px;
+}
+
+.report-actions p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+#download-report {
+  padding: 12px 20px;
+  border: 1px solid #0284c7;
+  border-radius: 8px;
+  background: #0369a1;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+#download-report:hover:not(:disabled) {
+  background: #0284c7;
+}
+
+#download-report:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 3px;
+}
+
+#download-report:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  #download-report {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #download-report {
+    transition: none;
+  }
+}

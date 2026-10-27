@@ -185,7 +185,125 @@ function renderEvents(data) {
 eventSearch.addEventListener("input", renderEventTable);
 eventLevel.addEventListener("change", renderEventTable);
 
+function createChartRow(label, value, maxValue, category) {
+  const row = document.createElement("div");
+  row.className = "chart-row";
+
+  const heading = document.createElement("div");
+  heading.className = "chart-row-heading";
+
+  const name = document.createElement("span");
+  name.textContent = label;
+
+  const count = document.createElement("strong");
+  count.textContent = String(value);
+
+  heading.append(name, count);
+
+  const track = document.createElement("div");
+  track.className = "chart-track";
+
+  const bar = document.createElement("div");
+  bar.className = "chart-bar";
+  bar.dataset.category = category;
+  bar.style.width = `${maxValue > 0 ? value / maxValue * 100 : 0}%`;
+
+  track.appendChild(bar);
+  row.append(heading, track);
+
+  return row;
+}
+
+function renderCharts(data) {
+  const riskChart = document.getElementById("risk-chart");
+  const threatChart = document.getElementById("threat-chart");
+
+  riskChart.replaceChildren();
+  threatChart.replaceChildren();
+
+  const riskCounts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+  const riskLevels = data.riskLevels || {};
+
+  for (const level of Object.values(riskLevels)) {
+    if (Object.hasOwn(riskCounts, level)) {
+      riskCounts[level]++;
+    }
+  }
+
+  const maxRisk = Math.max(1, ...Object.values(riskCounts));
+
+  for (const [level, count] of Object.entries(riskCounts)) {
+    riskChart.appendChild(
+      createChartRow(level, count, maxRisk, level.toLowerCase())
+    );
+  }
+
+  const topThreats = Object.entries(data.threatScores || {})
+    .map(([ip, score]) => [ip, Number(score)])
+    .filter(([, score]) => Number.isFinite(score) && score >= 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  if (topThreats.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No threat scores found.";
+    threatChart.appendChild(empty);
+    return;
+  }
+
+  const maxScore = Math.max(1, ...topThreats.map(([, score]) => score));
+
+  for (const [ip, score] of topThreats) {
+    const level = String(riskLevels[ip] || "LOW").toLowerCase();
+
+    threatChart.appendChild(
+      createChartRow(ip, score, maxScore, level)
+    );
+  }
+}
+
+let latestAnalysis = null;
+
+const downloadButton = document.getElementById("download-report");
+
+function downloadAnalysisReport() {
+  if (!latestAnalysis) return;
+
+  const report = {
+    reportType: "TraceFinder Security Analysis",
+    generatedAt: new Date().toISOString(),
+    ...latestAnalysis
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(report, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  const timestamp = new Date().toISOString()
+    .replace(/[:.]/g, "-");
+
+  link.href = url;
+  link.download = `tracefinder-report-${timestamp}.json`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+downloadButton.addEventListener("click", downloadAnalysisReport);
+
 function renderResults(data) {
+  latestAnalysis = data;
+  downloadButton.disabled = false;
+
+  renderCharts(data);
   renderThreats(data);
   renderEvents(data);
 }
@@ -202,6 +320,9 @@ rulebookInput.addEventListener("change", () => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  latestAnalysis = null;
+  downloadButton.disabled = true;
 
   const logFile = logInput.files[0];
   const rulebookFile = rulebookInput.files[0];
