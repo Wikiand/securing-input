@@ -43,6 +43,134 @@ function addCell(row, value, className = "") {
   row.appendChild(cell);
 }
 
+function resetIpInvestigation() {
+  const panel = document.getElementById("investigation-details");
+  panel.replaceChildren();
+
+  const message = document.createElement("p");
+  message.className = "empty-state";
+  message.textContent =
+    "Select an IP address from the suspicious IPs table to investigate.";
+
+  panel.appendChild(message);
+}
+
+function investigationTimestamp(value) {
+  if (Array.isArray(value) && value.length >= 6) {
+    const [year, month, day, hour, minute, second, nanoseconds = 0] = value;
+
+    const parts = [year, month, day, hour, minute, second, nanoseconds];
+    if (!parts.every((part) => Number.isInteger(part))) return null;
+
+    const timestamp = Date.UTC(
+      year, month - 1, day, hour, minute, second,
+      Math.floor(nanoseconds / 1_000_000)
+    );
+
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  if (typeof value === "string") {
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }
+
+  return null;
+}
+
+function formatInvestigationTime(value) {
+  if (Array.isArray(value) && value.length >= 6) {
+    const [year, month, day, hour, minute, second] = value;
+    const pad = (number) => String(number).padStart(2, "0");
+
+    return `${year}-${pad(month)}-${pad(day)} ` +
+      `${pad(hour)}:${pad(minute)}:${pad(second)}`;
+  }
+
+  if (typeof value === "string") {
+    return value.replace("T", " ");
+  }
+
+  return displayValue(value);
+}
+
+function showIpInvestigation(ip, score, level) {
+  const panel = document.getElementById("investigation-details");
+  panel.replaceChildren();
+
+  const heading = document.createElement("h3");
+  heading.textContent = `Investigating ${ip}`;
+
+  const summary = document.createElement("p");
+  summary.textContent = `Threat Score: ${score} | Risk Level: ${level}`;
+
+  const events = flaggedEvents
+    .filter((event) => String(event.sourceIp ?? "") === ip)
+    .sort((a, b) => {
+      const first = investigationTimestamp(a.timestamp);
+      const second = investigationTimestamp(b.timestamp);
+
+      if (first === null && second === null) {
+        return (a.lineNumber ?? 0) - (b.lineNumber ?? 0);
+      }
+      if (first === null) return 1;
+      if (second === null) return -1;
+
+      return first - second
+        || (a.lineNumber ?? 0) - (b.lineNumber ?? 0);
+    });
+
+  const validEvents = events.filter(
+    (event) => investigationTimestamp(event.timestamp) !== null
+  );
+
+  if (validEvents.length > 0) {
+    const activity = document.createElement("p");
+    activity.className = "investigation-activity";
+
+    activity.textContent =
+      `First observed: ${formatInvestigationTime(validEvents[0].timestamp)} | ` +
+      `Last observed: ${formatInvestigationTime(validEvents[validEvents.length - 1].timestamp)}`;
+
+    panel.appendChild(activity);
+  }
+
+  const eventHeading = document.createElement("h4");
+  eventHeading.textContent = `Associated Security Events (${events.length})`;
+
+  panel.append(heading, summary, eventHeading);
+
+  if (events.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No flagged events associated with this IP.";
+    panel.appendChild(empty);
+  } else {
+    const list = document.createElement("ul");
+    list.className = "investigation-events";
+
+    for (const event of events) {
+      const item = document.createElement("li");
+      item.textContent = [
+        formatInvestigationTime(event.timestamp),
+        event.level,
+        event.target,
+        event.action,
+        `Line ${event.lineNumber}`
+      ].map(displayValue).join(" | ");
+
+      list.appendChild(item);
+    }
+
+    panel.appendChild(list);
+  }
+
+  document.getElementById("ip-investigation").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
 function renderThreats(data) {
   const table = document.getElementById("threat-table");
   table.replaceChildren();
@@ -63,7 +191,20 @@ function renderThreats(data) {
     if (level === "HIGH") highRiskCount++;
 
     const row = document.createElement("tr");
-    addCell(row, ip);
+
+    const ipCell = document.createElement("td");
+    const ipButton = document.createElement("button");
+    ipButton.type = "button";
+    ipButton.className = "investigate-ip";
+    ipButton.textContent = ip;
+    ipButton.setAttribute("aria-label", `Investigate IP ${ip}`);
+    ipButton.addEventListener("click", () => {
+      showIpInvestigation(ip, score, level);
+    });
+
+    ipCell.appendChild(ipButton);
+    row.appendChild(ipCell);
+
     addCell(row, score);
     addCell(
       row,
@@ -300,6 +441,7 @@ function downloadAnalysisReport() {
 downloadButton.addEventListener("click", downloadAnalysisReport);
 
 function renderResults(data) {
+  resetIpInvestigation();
   latestAnalysis = data;
   downloadButton.disabled = false;
 
@@ -323,6 +465,7 @@ form.addEventListener("submit", async (event) => {
 
   latestAnalysis = null;
   downloadButton.disabled = true;
+  resetIpInvestigation();
 
   const logFile = logInput.files[0];
   const rulebookFile = rulebookInput.files[0];
