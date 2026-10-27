@@ -255,3 +255,66 @@ th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
   .upload-grid { grid-template-columns: 1fr; }
   .panel { padding: 18px; }
 }
+
+/* Security event investigation controls */
+.event-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.event-filters input,
+.event-filters select {
+  min-width: 180px;
+  padding: 11px 14px;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #f1f5f9;
+  font: inherit;
+}
+
+.event-filters input {
+  flex: 1;
+  min-width: 240px;
+}
+
+.event-filters input:focus,
+.event-filters select:focus {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.event-filters input::placeholder {
+  color: #94a3b8;
+}
+
+#event-count {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+#event-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+#event-table tr:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+@media (max-width: 600px) {
+  .event-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .event-filters input,
+  .event-filters select {
+    width: 100%;
+    min-width: 0;
+  }
+}

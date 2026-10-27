@@ -109,6 +109,32 @@
         </div>
       </section>
 
+      <section class="visualizations" aria-label="Threat visualizations">
+        <article class="panel chart-panel">
+          <div class="section-heading">
+            <div>
+              <h2>Risk Distribution</h2>
+              <p>IP addresses grouped by assessed risk.</p>
+            </div>
+          </div>
+          <div id="risk-chart" class="chart-content" aria-live="polite">
+            <p class="empty-state">Run an analysis to view risk distribution.</p>
+          </div>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="section-heading">
+            <div>
+              <h2>Top Threat Sources</h2>
+              <p>Highest-scoring source IP addresses.</p>
+            </div>
+          </div>
+          <div id="threat-chart" class="chart-content" aria-live="polite">
+            <p class="empty-state">Run an analysis to view threat rankings.</p>
+          </div>
+        </article>
+      </section>
+
       <section id="threats" class="panel">
         <div class="section-heading">
           <div>
@@ -139,8 +165,41 @@
             <p>Events identified by the configured detection rules.</p>
           </div>
         </div>
-        <div id="events-container" class="empty-state">
-          Upload files and run an analysis to see flagged events.
+        <div class="event-filters">
+          <input
+            id="event-search"
+            type="search"
+            placeholder="Search IP, target, action, or log content..."
+            aria-label="Search security events"
+          >
+
+          <select id="event-level" aria-label="Filter by severity">
+            <option value="">All severity levels</option>
+          </select>
+
+          <span id="event-count" aria-live="polite">0 events</span>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Level</th>
+                <th>Source IP</th>
+                <th>Target</th>
+                <th>Action</th>
+                <th>Line</th>
+              </tr>
+            </thead>
+            <tbody id="event-table">
+              <tr>
+                <td colspan="6" class="empty-state">
+                  Upload files and run an analysis to see events.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

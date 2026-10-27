@@ -88,37 +88,102 @@ function renderThreats(data) {
   }
 }
 
-function renderEvents(data) {
-  const container = document.getElementById("events-container");
-  container.replaceChildren();
-  container.classList.remove("empty-state");
+let flaggedEvents = [];
 
-  const events = entriesOf(data.flaggedEntries);
+const eventSearch = document.getElementById("event-search");
+const eventLevel = document.getElementById("event-level");
 
-  document.getElementById("flagged-count").textContent = events.length;
-  document.getElementById("malformed-count").textContent =
-    countItems(data.malformedLines);
+function renderEventTable() {
+  const table = document.getElementById("event-table");
+  const query = eventSearch.value.trim().toLowerCase();
+  const selectedLevel = eventLevel.value;
 
-  if (events.length === 0) {
-    container.classList.add("empty-state");
-    container.textContent = "No flagged events found.";
+  const filtered = flaggedEvents.filter((event) => {
+    const level = String(event.level ?? "");
+    const searchable = [
+      event.timestamp,
+      event.level,
+      event.sourceIp,
+      event.target,
+      event.action,
+      event.rawContent,
+      event.lineNumber
+    ].map((value) => String(value ?? "")).join(" ").toLowerCase();
+
+    return searchable.includes(query)
+      && (!selectedLevel || level === selectedLevel);
+  });
+
+  table.replaceChildren();
+
+  document.getElementById("event-count").textContent =
+    `${filtered.length} of ${flaggedEvents.length} events`;
+
+  if (filtered.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.className = "empty-state";
+    cell.textContent = flaggedEvents.length
+      ? "No events match your filters."
+      : "No flagged events found.";
+    row.appendChild(cell);
+    table.appendChild(row);
     return;
   }
 
-  for (const [key, event] of events) {
-    const item = document.createElement("div");
-    item.className = "event-item";
+  for (const event of filtered) {
+    const row = document.createElement("tr");
 
-    const label = document.createElement("strong");
-    label.textContent = `Event ${key}`;
+    addCell(row, event.timestamp);
+    addCell(row, event.level);
+    addCell(row, event.sourceIp);
+    addCell(row, event.target);
+    addCell(row, event.action);
+    addCell(row, event.lineNumber);
 
-    const detail = document.createElement("div");
-    detail.textContent = displayValue(event);
-
-    item.append(label, detail);
-    container.appendChild(item);
+    row.title = String(event.rawContent ?? "");
+    table.appendChild(row);
   }
 }
+
+function renderEvents(data) {
+  flaggedEvents = Array.isArray(data.flaggedEntries)
+    ? data.flaggedEntries
+    : [];
+
+  document.getElementById("flagged-count").textContent =
+    flaggedEvents.length;
+
+  document.getElementById("malformed-count").textContent =
+    countItems(data.malformedLines);
+
+  const levels = [...new Set(
+    flaggedEvents.map((event) => String(event.level ?? ""))
+  )].filter(Boolean).sort();
+
+  eventLevel.replaceChildren();
+
+  const allOption = document.createElement("option");
+  allOption.value = "";
+  allOption.textContent = "All severity levels";
+  eventLevel.appendChild(allOption);
+
+  for (const level of levels) {
+    const option = document.createElement("option");
+    option.value = level;
+    option.textContent = level;
+    eventLevel.appendChild(option);
+  }
+
+  eventSearch.value = "";
+  eventLevel.value = "";
+
+  renderEventTable();
+}
+
+eventSearch.addEventListener("input", renderEventTable);
+eventLevel.addEventListener("change", renderEventTable);
 
 function renderResults(data) {
   renderThreats(data);
